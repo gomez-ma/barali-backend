@@ -8,13 +8,13 @@ db.sequelize.sync({ force: true }).then(() => {
 });
 
 app.get("/", (req, res) => {
-res.send("Hello World");
-// console.log("Hello World");
+    res.send("Hello World");
+    // console.log("Hello World");
 })
 
 require("./app/routes/auth.routes")(app);
 
 const PORT = process.env.SERVER_PORT || 5000;
-app.listen(PORT, () => { 
-    console.log(`Server is running on port ${PORT}`) 
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`)
 });

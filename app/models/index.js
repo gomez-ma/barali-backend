@@ -11,7 +11,7 @@ const sequelize = new Sequelize(
         pool: {
             max: config.pool.max,
             min: config.pool.min,
-            qcqure: config.pool.acquire,
+            acqure: config.pool.acquire,
             idle: config.pool.idle
         }
     }
@@ -23,7 +23,6 @@ db.sequelize = sequelize;
 
 db.user = require("../models/user.model")(sequelize, Sequelize);
 db.role = require("../models/role.model")(sequelize, Sequelize);
-db.user_roles = require("../models/user_roles.model")(sequelize, Sequelize);
 
 db.role.belongsToMany(db.user, {
     through: "user_roles"
