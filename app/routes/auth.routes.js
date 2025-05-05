@@ -1,6 +1,6 @@
 const controller = require("../controllers/auth.controller");
 
 module.exports = (app) => {
-    app.get("/api/signup", controller.signup);
-    app.get("/api/signin", controller.signin);
+    // app.get("/api/auth/signup", controller.signup);
+    app.post("/api/auth/signin", controller.signin);
 }
