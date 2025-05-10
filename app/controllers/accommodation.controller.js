@@ -33,6 +33,7 @@ exports.getAll = async (req, res) => {
                     attributes: ["name"]
                 }
             ],
+            order: [['id', 'ASC']],
             limit: 2
         });
         res.status(200).json(accommodation);
