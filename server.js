@@ -11,16 +11,9 @@ app.use(express.json());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// db.type.sync({ alter: true })
+// db.activity.sync({ alter: true })
 //     .then(() => {
-//         console.log("Create table Type already.")
-//     })
-//     .catch((err) => {
-//         console.log(err);
-//     })
-// db.accommodation.sync({ alter: true })
-//     .then(() => {
-//         console.log("Create table Accommodation already.")
+//         console.log("Create table already.")
 //     })
 //     .catch((err) => {
 //         console.log(err);
@@ -37,6 +30,7 @@ app.get("/", (req, res) => {
 
 require("./app/routes/auth.routes")(app);
 require("./app/routes/accommodation.routes")(app);
+require("./app/routes/activity.routes")(app);
 
 const PORT = process.env.SERVER_PORT || 5000;
 app.listen(PORT, () => {

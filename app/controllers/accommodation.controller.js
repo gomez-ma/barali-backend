@@ -41,3 +41,12 @@ exports.getAll = async (req, res) => {
         res.status(500).json({ message: "Error fetching accommodations"});
     }
 }
+
+exports.getPopularAccommodation = async (req, res) => {
+    try {
+        const limitNum = 4;
+        const minRatingNum = 4.5;
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching popular accommodations"});
+    }
+}
