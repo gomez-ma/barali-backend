@@ -26,6 +26,7 @@ db.role = require("../models/role.model")(sequelize, Sequelize);
 db.type = require("../models/type.model")(sequelize, Sequelize);
 db.accommodation = require("../models/accommodation.model")(sequelize, Sequelize);
 db.activity = require("../models/activity.model")(sequelize, Sequelize);
+db.booking = require("../models/booking.model")(sequelize, Sequelize);
 
 // Many-to-Many
 db.role.belongsToMany(db.user, {
@@ -41,6 +42,16 @@ db.type.hasMany(db.accommodation, {
 });
 db.accommodation.belongsTo(db.type, {
     foreignKey: "type_id"
+});
+// One-to-Many
+db.user.hasMany(db.booking, {
+    foreignKey: "userId",
+    onDelete: "RESTRICT"
+});
+
+db.accommodation.hasMany(db.booking, {
+    foreignKey: "accommodationId",
+    onDelete: "RESTRICT"
 });
 
 // RESTRICT: ไม่อนุญาตให้ลบหรืออัปเดตข้อมูลหากมีการอ้างอิงจากข้อมูลในตารางอื่น
