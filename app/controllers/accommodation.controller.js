@@ -21,7 +21,7 @@ exports.getPromotion = async (req, res) => {
         });
         res.status(200).json(promotion);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching promotions"});
+        res.status(500).json({ message: "Error fetching promotions" });
     }
 }
 
@@ -35,11 +35,11 @@ exports.getAll = async (req, res) => {
                 }
             ],
             order: [['id', 'ASC']],
-            limit: 2
+            // limit: 2
         });
         res.status(200).json(accommodation);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching accommodations"});
+        res.status(500).json({ message: "Error fetching accommodations" });
     }
 }
 
@@ -66,12 +66,12 @@ exports.getPopularAccommodation = async (req, res) => {
         const popularAccommodations = accommodations.map(item => {
             const accommodationObject = item.toJSON();
             const bookings = accommodationObject.bookings || [];
-            
+
             // คำนวณคะแนนเฉลี่ย
             const validRatings = bookings
-            .map(b => b.checkOutRating)
-            .filter(rating => rating !== null && rating !== undefined && typeof rating === 'number');
-            
+                .map(b => b.checkOutRating)
+                .filter(rating => rating !== null && rating !== undefined && typeof rating === 'number');
+
             const totalRating = validRatings.reduce((acc, rating) => acc + rating, 0);
             const countRating = validRatings.length;
             const averageRating = countRating > 0 ? totalRating / countRating : 0;
@@ -81,7 +81,7 @@ exports.getPopularAccommodation = async (req, res) => {
             const now = new Date();
             const thirtyDaysAgo = new Date(now);
             thirtyDaysAgo.setDate(now.getDate() - 30);
-            
+
             const recentBookings = bookings.filter(b => {
                 const bookingDate = new Date(b.checkInDate);
                 return bookingDate >= thirtyDaysAgo && bookingDate <= now;
@@ -89,7 +89,7 @@ exports.getPopularAccommodation = async (req, res) => {
 
             // คำนวณคะแนนความนิยม (คะแนนรีวิว + จำนวนการจอง)
             const popularityScore = (averageRating * 0.5) + (recentBookings.length * 0.5);
-            
+
             return {
                 ...accommodationObject,
                 averageRating: parseFloat(averageRating.toFixed(2)),
@@ -101,14 +101,137 @@ exports.getPopularAccommodation = async (req, res) => {
         });
 
         const filteredAccommodations = popularAccommodations
-        .filter(acc => acc.averageRating >= minRatingNum)
-        .sort((a, b) => b.popularityScore - a.popularityScore)
-        .slice(0, limitNum);
-        
+            .filter(acc => acc.averageRating >= minRatingNum)
+            .sort((a, b) => b.popularityScore - a.popularityScore)
+            .slice(0, limitNum);
+
         // console.log(accommodations);
         res.status(200).json(filteredAccommodations);
-        
+
     } catch (error) {
-        res.status(500).json({ message: "Error fetching popular accommodations"});
+        res.status(500).json({ message: "Error fetching popular accommodations" });
     }
 }
+
+exports.getSearch = async (req, res) => {
+    try {
+        const { destination, checkIn, checkOut, guests } = req.query;
+
+        console.log("Destination:", destination);
+        console.log("CheckIn:", checkIn);
+        console.log("CheckOut:", checkOut);
+        console.log("Guests:", guests);
+
+        if (!checkIn && !checkOut) {
+            return res.status(400).json({ message: "Please provide checkIn and checkOut dates." });
+        }
+
+        const accommodations = await Accommodation.findAll({
+            include: [
+                {
+                    model: Type,
+                    attributes: ["name"],
+                    required: true,
+                    // where: {
+                    //     name: { [Op.like]: `%${destination}%` }
+                    // }
+                }
+            ],
+            // where: {
+            //     capacity: { [Op.gte]: guests }
+            // }
+            where: {
+                [Op.and]: [
+                    { capacity: { [Op.gte]: guests } },
+                    { '$type.name$': { [Op.like]: `%${destination}%` } }, // ใช้ชื่อ alias model
+                ]
+            }
+        });
+        res.status(200).json(accommodations);
+    } catch (error) {
+        res.status(500).json({ message: "Error searching accommodations" });
+    }
+};
+
+exports.getAvailability = async (req, res) => {
+  try {
+    const { check_in, check_out } = req.query;
+
+    // ต้องตรวจสอบว่าวันที่ถูกต้อง
+    if (!check_in || !check_out) {
+      return res.status(400).json({ message: 'Check-in and check-out dates are required' });
+    }
+
+    // ดึงข้อมูลการจองทั้งหมดในช่วงเวลาที่ต้องการ
+    const bookings = await Booking.findAll({
+      where: {
+        [Op.or]: [
+          {
+            checkInDate: {
+              [Op.between]: [check_in, check_out]
+            }
+          },
+          {
+            checkOutDate: {
+              [Op.between]: [check_in, check_out]
+            }
+          },
+          {
+            [Op.and]: [
+              {
+                checkInDate: {
+                  [Op.lte]: check_in
+                }
+              },
+              {
+                checkOutDate: {
+                  [Op.gte]: check_out
+                }
+              }
+            ]
+          }
+        ],
+        isCancelled: false,
+        checkedOut: false
+      },
+      attributes: ['id', 'accommodationId'], // Make sure to include accommodation_id
+      //raw: true
+    });
+
+    // นับจำนวนการจองต่อที่พัก
+    const bookingCounts = {};
+    bookings.forEach(booking => {
+      const accommodationId = booking.accommodationId;
+      if (!bookingCounts[accommodationId]) {
+        bookingCounts[accommodationId] = 0;
+      }
+      bookingCounts[accommodationId]++;
+    });
+
+    // ดึงข้อมูลจำนวนห้องทั้งหมดของแต่ละที่พัก
+    const accommodations = await Accommodation.findAll({
+      attributes: ['id', 'total_rooms'],
+      raw: true
+    });
+
+    // คำนวณจำนวนห้องว่าง
+    const availability = accommodations.map(acc => {
+      const bookedRooms = bookingCounts[acc.id] || 0;
+      const availableRooms = Math.max(0, acc.total_rooms - bookedRooms);
+
+      // console.log(`Accommodation ID: ${acc.id}, Total Rooms: ${acc.total_rooms}, Booked Rooms: ${bookedRooms}, Available Rooms: ${availableRooms}`);
+
+      return {
+        accommodationId: acc.id,
+        totalRooms: acc.total_rooms,
+        bookedRooms: bookedRooms,
+        availableRooms: availableRooms
+      };
+    });
+
+    res.json({ data: availability });
+  } catch (error) {
+    console.error('Error getting availability:', error);
+    res.status(500).json({ message: 'Server error while fetching availability' });
+  }
+};
