@@ -123,26 +123,16 @@ exports.getSearch = async (req, res) => {
 
     const loweredDestination = destination.toLowerCase();
 
-    const condition = where(
-      fn('LOWER', col('type.name')), // แปลง type.name เป็น lowercase ใน SQL
-      {
-        [Op.like]: `%${loweredDestination}%` // เทียบกับ lowercase ปลายทาง
-      }
-    );
-
     const accommodations = await Accommodation.findAll({
       include: [
         {
           model: Type,
           attributes: ["name"],
           required: true,
-          // where: {
-          //     name: { [Op.like]: `%${destination}%` }
-          // }
         }
       ],
       // where: {
-      //     capacity: { [Op.gte]: guests }
+      //   capacity: { [Op.gte]: guests }
       // }
       // where: {
       //   [Op.and]: [
@@ -152,7 +142,15 @@ exports.getSearch = async (req, res) => {
       // }
       where: {
         [Op.and]: [
-          condition
+          // ตรวจสอบชื่อ type แบบ case-insensitive
+          where(
+            fn('LOWER', col('type.name')),
+            {
+              [Op.like]: `%${loweredDestination}%`
+            }
+          ),
+          // ตรวจสอบจำนวนผู้เข้าพัก
+          { capacity: { [Op.gte]: guests } }
         ]
       }
     });
